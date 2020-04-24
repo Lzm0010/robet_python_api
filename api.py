@@ -2,22 +2,82 @@ from flask import Flask, request
 import json
 import pandas as pd
 import numpy as np
-import datetime
+from datetime import datetime
+from sportsreference.mlb.schedule import Schedule
 from sklearn.linear_model import LinearRegression
 from sklearn import preprocessing, svm
+# from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 
 app = Flask(__name__)
 app.config["DEBUG"] = True
 
-@app.route('/sports/<sport>/events/<event_id>', methods=['GET'])
-def predict_game(sport, event_id):
-    if sport and event_id:
-        sport = sport
-        event = int(event_id)
-    else:
-        return "Error: No sport or event field provided. Please specify both." 
+@app.route('/mlb/<team1>/<team2>', methods=['GET'])
+def predict_game(team1, team2):
 
-    return {"sport": sport, "event": event}
+    # FIELDS_TO_DROP = ['away_points', 'home_points', 'date', 'location',
+    #               'losing_abbr', 'losing_name', 'winner', 'winning_abbr',
+    #               'winning_name', 'home_ranking', 'away_ranking']
+
+    # dataset = pd.DataFrame()
+    # auburn_schedule = Schedule('AUBURN')
+    # dataset = pd.concat([dataset, auburn_schedule.dataframe_extended])
+    # # for team in teams:
+    # #     dataset = pd.concat([dataset, team.schedule.dataframe_extended])
+    # X = dataset.drop(FIELDS_TO_DROP, 1).dropna().drop_duplicates()
+    # y = dataset[['home_points', 'away_points']].values
+    # X_train, X_test, y_train, y_test = train_test_split(X, y)
+    # parameters = {'bootstrap': False,
+    #             'min_samples_leaf': 3,
+    #             'n_estimators': 50,
+    #             'min_samples_split': 10,
+    #             'max_features': 'sqrt',
+    #             'max_depth': 6}
+    # model = RandomForestRegressor(**parameters)
+    # model.fit(X_train, y_train)
+    
+    # predicted_scores = model.predict(X_test).astype(int).tolist()
+    # results = {"predicted": predicted_scores, "actual": y_test.tolist()}
+    # json_results = json.dumps(results)
+    # return json_results
+
+
+    dataset = {}
+    teams = [team1, team2]
+    for num, team in enumerate(teams):
+        df = Schedule(team, year=2019).dataframe
+        df = df[['runs_scored']].head(130)
+
+        forecast_out=int(1)
+        print(df.shape)
+        df['Prediction'] = df[['runs_scored']].shift(-forecast_out)
+
+        X = np.array(df.drop(['Prediction'], 1))
+        X = preprocessing.scale(X)
+
+        X_forecast = X[-forecast_out:]
+        X = X[:-forecast_out]
+
+        y = np.array(df['Prediction'])
+        y = y[:-forecast_out]
+
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2)
+
+        clf = LinearRegression()
+        clf.fit(X_train, y_train)
+
+        confidence = clf.score(X_test, y_test)
+
+        forecast_prediction = clf.predict(X_forecast)
+        lists_of_forecast = forecast_prediction.tolist()
+        if num == 0:
+            dataset[team1] = {"confidence": confidence, "predicted_score": lists_of_forecast}
+        else:
+            dataset[team2] = {"confidence": confidence, "predicted_score": lists_of_forecast}
+
+    json_forecast = json.dumps(dataset, default=str)
+
+    return json_forecast
+
 
 app.run()
