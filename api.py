@@ -3,7 +3,9 @@ import json
 import pandas as pd
 import numpy as np
 from datetime import datetime
-from sportsreference.mlb.schedule import Schedule
+from sportsreference.mlb.schedule import Schedule as MLB_Schedule
+from sportsreference.nba.schedule import Schedule as NBA_Schedule 
+from sportsreference.nfl.schedule import Schedule as NFL_Schedule
 from sklearn.linear_model import LinearRegression
 from sklearn import preprocessing, svm
 # from sklearn.ensemble import RandomForestRegressor
@@ -12,8 +14,8 @@ from sklearn.model_selection import train_test_split
 app = Flask(__name__)
 app.config["DEBUG"] = True
 
-@app.route('/mlb/<team1>/<team2>', methods=['GET'])
-def predict_game(team1, team2):
+@app.route('/MLB/<team1>/<team2>', methods=['GET'])
+def predict_mlb_game(team1, team2):
 
     # FIELDS_TO_DROP = ['away_points', 'home_points', 'date', 'location',
     #               'losing_abbr', 'losing_name', 'winner', 'winning_abbr',
@@ -45,8 +47,8 @@ def predict_game(team1, team2):
     dataset = {}
     teams = [team1, team2]
     for num, team in enumerate(teams):
-        df = Schedule(team, year=2019).dataframe
-        df = df[['runs_scored']].head(130)
+        df = MLB_Schedule(team, year=2019).dataframe
+        df = df[['runs_scored']].head(137) #started at 130 on August 24th 2019 - now on 137 Aug 31 hasnt run yet
 
         forecast_out=int(1)
         print(df.shape)
@@ -79,5 +81,85 @@ def predict_game(team1, team2):
 
     return json_forecast
 
+
+@app.route('/NBA/<team1>/<team2>', methods=['GET'])
+def predict_nba_game(team1, team2):
+    dataset = {}
+    teams = [team1, team2]
+
+    for num, team in enumerate(teams):
+        df = NBA_Schedule(team, year=2019).dataframe
+        df = df[['points_scored']]
+
+        forecast_out=int(1)
+        print(df.shape)
+        df['Prediction'] = df[['points_scored']].shift(-forecast_out)
+
+        X = np.array(df.drop(['Prediction'], 1))
+        X = preprocessing.scale(X)
+
+        X_forecast = X[-forecast_out:]
+        X = X[:-forecast_out]
+
+        y = np.array(df['Prediction'])
+        y = y[:-forecast_out]
+
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2)
+
+        clf = LinearRegression()
+        clf.fit(X_train, y_train)
+
+        confidence = clf.score(X_test, y_test)
+
+        forecast_prediction = clf.predict(X_forecast)
+        lists_of_forecast = forecast_prediction.tolist()
+        if num == 0:
+            dataset[team1] = {"confidence": confidence, "predicted_score": lists_of_forecast}
+        else:
+            dataset[team2] = {"confidence": confidence, "predicted_score": lists_of_forecast}
+
+    json_forecast = json.dumps(dataset, default=str)
+
+    return json_forecast
+
+
+@app.route('/NFL/<team1>/<team2>', methods=['GET'])
+def predict_nfl_game(team1, team2):
+    dataset = {}
+    teams = [team1, team2]
+    for num, team in enumerate(teams):
+        df = NFL_Schedule(team, year=2018).dataframe
+        df = df[['points_scored']]
+
+        forecast_out=int(1)
+        print(df.shape)
+        df['Prediction'] = df[['points_scored']].shift(-forecast_out)
+
+        X = np.array(df.drop(['Prediction'], 1))
+        X = preprocessing.scale(X)
+
+        X_forecast = X[-forecast_out:]
+        X = X[:-forecast_out]
+
+        y = np.array(df['Prediction'])
+        y = y[:-forecast_out]
+
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2)
+
+        clf = LinearRegression()
+        clf.fit(X_train, y_train)
+
+        confidence = clf.score(X_test, y_test)
+
+        forecast_prediction = clf.predict(X_forecast)
+        lists_of_forecast = forecast_prediction.tolist()
+        if num == 0:
+            dataset[team1] = {"confidence": confidence, "predicted_score": lists_of_forecast}
+        else:
+            dataset[team2] = {"confidence": confidence, "predicted_score": lists_of_forecast}
+
+    json_forecast = json.dumps(dataset, default=str)
+
+    return json_forecast
 
 app.run()
