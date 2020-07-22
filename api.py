@@ -1,4 +1,5 @@
 from flask import Flask, request
+from flask_cors import CORS
 import json
 import pandas as pd
 import numpy as np
@@ -12,6 +13,7 @@ from sklearn import preprocessing, svm
 from sklearn.model_selection import train_test_split
 
 app = Flask(__name__)
+CORS(app)
 app.config["DEBUG"] = True
 
 @app.route('/MLB/<team1>/<team2>', methods=['GET'])
@@ -48,7 +50,7 @@ def predict_mlb_game(team1, team2):
     teams = [team1, team2]
     for num, team in enumerate(teams):
         df = MLB_Schedule(team, year=2019).dataframe
-        df = df[['runs_scored']].head(137) #started at 130 on August 24th 2019 - now on 137 Aug 31 hasnt run yet
+        df = df[['runs_scored']].head(147) #started at 130 on August 24th 2019 - now on 147 Sep 7 hasnt run yet
 
         forecast_out=int(1)
         print(df.shape)
