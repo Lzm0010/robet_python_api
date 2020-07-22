@@ -16,9 +16,9 @@ app = Flask(__name__)
 CORS(app)
 app.config["DEBUG"] = True
 
-@app.route('/', methods=['GET'])
-def home():
-    return "Hi"
+@app.route("/", methods=['GET'])
+def home_view():
+    return "<h1>Hi welcome to ML</h1>"
 
 @app.route('/MLB/<team1>/<team2>', methods=['GET'])
 def predict_mlb_game(team1, team2):
