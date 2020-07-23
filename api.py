@@ -168,4 +168,5 @@ def predict_nfl_game(team1, team2):
 
     return json_forecast
 
-app.run()
+if __name__ == '__main__':
+    app.run()
