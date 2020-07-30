@@ -54,7 +54,7 @@ def predict_mlb_game(team1, team2):
     teams = [team1, team2]
     for num, team in enumerate(teams):
         df = MLB_Schedule(team, year=2019).dataframe
-        df = df[['runs_scored']].head(147) #started at 130 on August 24th 2019 - now on 147 Sep 7 hasnt run yet
+        df = df[['runs_scored']] #started at 130 on August 24th 2019 - now on 147 Sep 7 hasnt run yet
 
         forecast_out=int(1)
         print(df.shape)
@@ -94,7 +94,7 @@ def predict_nba_game(team1, team2):
     teams = [team1, team2]
 
     for num, team in enumerate(teams):
-        df = NBA_Schedule(team, year=2019).dataframe
+        df = NBA_Schedule(team, year=2020).dataframe.head(63)
         df = df[['points_scored']]
 
         forecast_out=int(1)
